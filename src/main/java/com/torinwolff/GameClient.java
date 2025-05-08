@@ -27,7 +27,7 @@ public class GameClient {
         kryo.register(java.util.HashMap.class); // Ensure compatibility with HashMap if used
 
         // Connect to the server
-        client.connect(5000, "localhost", 54555, 54777);
+        client.connect(5000, "35.163.100.41", 54555, 54777);
 
         // Add a listener to handle incoming messages
         client.addListener(new com.esotericsoftware.kryonet.Listener() {
@@ -103,7 +103,7 @@ public class GameClient {
     public String getUsernameForPlayer(int id) {
         return playerUsernames.getOrDefault(id, "Unknown Player");
     }
-    
+
     public ConcurrentHashMap<Integer, PlayerState> getWorldState() {
         return worldState;
     }
