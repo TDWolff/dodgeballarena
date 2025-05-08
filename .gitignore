@@ -1,0 +1,36 @@
+# Maven target directory
+/target/
+
+# IntelliJ IDEA
+*.iml
+.idea/
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+
+# OS-specific
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Build tools
+dependency-reduced-pom.xml
+
+# Compiled class files
+*.class
+
+# Environment/secret files
+.env
+*.key
+*.pem
