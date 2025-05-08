@@ -1,0 +1,1 @@
+java -cp target/dodgeballarena-1.0-SNAPSHOT.jar com.torinwolff.GameServer
