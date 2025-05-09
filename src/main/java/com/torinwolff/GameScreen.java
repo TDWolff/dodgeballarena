@@ -28,7 +28,7 @@ public class GameScreen implements Screen {
     private float playerVelocityY = 0;
     private boolean isJumping = false;
 
-    private final Rectangle platform = new Rectangle(0, 50, 800, 32);
+    private final Rectangle platform = new Rectangle(0, -90, 800, 200);
 
     public GameScreen(Main game, String username, GameClient client) {
         this.game = game;
