@@ -4,8 +4,10 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.Cursor;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -41,6 +43,16 @@ public class GameScreen implements Screen {
     @Override
     public void show() {
         System.out.println("Welcome " + username + " to the game!");
+        applyCustomCursor();
+    
+        // Add a focus listener to reapply the cursor when the window regains focus
+        Gdx.input.setInputProcessor(new com.badlogic.gdx.InputAdapter() {
+            @Override
+            public boolean mouseMoved(int screenX, int screenY) {
+                applyCustomCursor();
+                return false;
+            }
+        });
     
         int retryCount = 0;
         while (!client.isConnected() && retryCount < 5) {
@@ -59,6 +71,24 @@ public class GameScreen implements Screen {
         } else {
             System.out.println("Client successfully connected!");
         }
+    }
+    
+    private void applyCustomCursor() {
+        Pixmap originalPixmap = new Pixmap(Gdx.files.internal("assets/crosshair.png"));
+        int scaledWidth = originalPixmap.getWidth() / 2;
+        int scaledHeight = originalPixmap.getHeight() / 2;
+        Pixmap scaledPixmap = new Pixmap(scaledWidth, scaledHeight, originalPixmap.getFormat());
+    
+        scaledPixmap.drawPixmap(originalPixmap,
+            0, 0, originalPixmap.getWidth(), originalPixmap.getHeight(), // Source dimensions
+            0, 0, scaledWidth, scaledHeight // Target dimensions
+        );
+    
+        Cursor cursor = Gdx.graphics.newCursor(scaledPixmap, scaledWidth / 2, scaledHeight / 2);
+        Gdx.graphics.setCursor(cursor);
+    
+        originalPixmap.dispose();
+        scaledPixmap.dispose();
     }
 
     @Override
@@ -122,10 +152,28 @@ public class GameScreen implements Screen {
     public void pause() {}
 
     @Override
-    public void resume() {}
+    public void resume() {
+        Pixmap originalPixmap = new Pixmap(Gdx.files.internal("assets/crosshair.png"));
+        int scaledWidth = originalPixmap.getWidth() / 2;
+        int scaledHeight = originalPixmap.getHeight() / 2;
+        Pixmap scaledPixmap = new Pixmap(scaledWidth, scaledHeight, originalPixmap.getFormat());
+        
+        scaledPixmap.drawPixmap(originalPixmap, 
+            0, 0, originalPixmap.getWidth(), originalPixmap.getHeight(), // Source dimensions
+            0, 0, scaledWidth, scaledHeight // Target dimensions
+        );
+        
+        Cursor cursor = Gdx.graphics.newCursor(scaledPixmap, scaledWidth / 2, scaledHeight / 2);
+        Gdx.graphics.setCursor(cursor);
+        
+        originalPixmap.dispose();
+        scaledPixmap.dispose();
+    }
 
     @Override
-    public void hide() {}
+    public void hide() {
+        Gdx.graphics.setSystemCursor(Cursor.SystemCursor.Arrow);
+    }
 
     @Override
     public void dispose() {
