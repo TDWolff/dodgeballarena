@@ -11,6 +11,7 @@ import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Rectangle;
 
 public class GameScreen implements Screen {
     private final Main game;
@@ -22,12 +23,18 @@ public class GameScreen implements Screen {
     private final MainPlayer player;
     private final String username;
 
+    private static final float GRAVITY = -10.8f * 100;
+    private static final float JUMP_VELOCITY = 500;
+    private float playerVelocityY = 0;
+    private boolean isJumping = false;
+
+    private final Rectangle platform = new Rectangle(0, 50, 800, 32);
+
     public GameScreen(Main game, String username, GameClient client) {
         this.game = game;
         this.username = username;
         this.client = client;
 
-        // Initialize camera and rendering tools
         camera = new OrthographicCamera();
         camera.setToOrtho(false, 800, 600);
 
@@ -35,17 +42,16 @@ public class GameScreen implements Screen {
         font = new BitmapFont();
         spriteBatch = new SpriteBatch();
 
-        // Initialize the player
         player = new MainPlayer();
-        player.setPlayerX(375); // Default starting position
+        player.setPlayerX(375); // Starting X position
     }
 
     @Override
     public void show() {
         System.out.println("Welcome " + username + " to the game!");
+
         applyCustomCursor();
-    
-        // Add a focus listener to reapply the cursor when the window regains focus
+
         Gdx.input.setInputProcessor(new com.badlogic.gdx.InputAdapter() {
             @Override
             public boolean mouseMoved(int screenX, int screenY) {
@@ -53,88 +59,105 @@ public class GameScreen implements Screen {
                 return false;
             }
         });
-    
+
         int retryCount = 0;
         while (!client.isConnected() && retryCount < 5) {
             System.err.println("Client is not connected. Retrying...");
             try {
-                Thread.sleep(500); // Wait for 500ms before retrying
+                Thread.sleep(500);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
             retryCount++;
         }
-    
+
         if (!client.isConnected()) {
             System.err.println("Failed to connect to the server after multiple attempts.");
-            // Optionally, transition back to the main menu or show an error message
         } else {
             System.out.println("Client successfully connected!");
         }
     }
-    
+
     private void applyCustomCursor() {
         Pixmap originalPixmap = new Pixmap(Gdx.files.internal("assets/crosshair.png"));
         int scaledWidth = originalPixmap.getWidth() / 2;
         int scaledHeight = originalPixmap.getHeight() / 2;
         Pixmap scaledPixmap = new Pixmap(scaledWidth, scaledHeight, originalPixmap.getFormat());
-    
+
         scaledPixmap.drawPixmap(originalPixmap,
-            0, 0, originalPixmap.getWidth(), originalPixmap.getHeight(), // Source dimensions
-            0, 0, scaledWidth, scaledHeight // Target dimensions
-        );
-    
+                0, 0, originalPixmap.getWidth(), originalPixmap.getHeight(),
+                0, 0, scaledWidth, scaledHeight);
+
         Cursor cursor = Gdx.graphics.newCursor(scaledPixmap, scaledWidth / 2, scaledHeight / 2);
         Gdx.graphics.setCursor(cursor);
-    
+
         originalPixmap.dispose();
         scaledPixmap.dispose();
     }
 
     @Override
     public void render(float delta) {
-        // Clear the screen with a black background
-        Gdx.gl.glClearColor(0, 0, 0, 1);
+        Gdx.gl.glClearColor(0.95f, 0.95f, 0.95f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-    
-        // Update the camera
+
         camera.update();
-    
-        // Handle input for horizontal movement
+
+        // Draw platform and player
+        shapeRenderer.setProjectionMatrix(camera.combined);
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(0.2f, 0.7f, 0.2f, 1); // Platform - green
+        shapeRenderer.rect(platform.x, platform.y, platform.width, platform.height);
+        shapeRenderer.setColor(0.1f, 0.3f, 1f, 1); // Player - blue
+        Rectangle playerBounds = player.getBoundingRectangle();
+        shapeRenderer.rect(playerBounds.x, playerBounds.y, playerBounds.width, playerBounds.height);
+        shapeRenderer.end();
+
+        // Apply gravity
+        playerVelocityY += GRAVITY * delta;
+
+        // Collision
+        handleCollisions(delta);
+
+        // Jump
+        if (Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.SPACE) && !isJumping) {
+            playerVelocityY = JUMP_VELOCITY;
+            isJumping = true;
+        }
+
+        // Horizontal movement
         if (Gdx.input.isKeyPressed(com.badlogic.gdx.Input.Keys.A)) {
-            player.setPlayerX(player.getPlayerX() - 200 * delta); // Move left
+            player.setPlayerX(player.getPlayerX() - 200 * delta);
         }
         if (Gdx.input.isKeyPressed(com.badlogic.gdx.Input.Keys.D)) {
-            player.setPlayerX(player.getPlayerX() + 200 * delta); // Move right
+            player.setPlayerX(player.getPlayerX() + 200 * delta);
         }
-    
-        // Send the player's position to the server
+
+        // Send player state
         client.sendPlayerState(player.getPlayerX(), player.getPlayerY());
-    
-        // Render all players in the shared world state
+
+        // Render other players
         ConcurrentHashMap<Integer, PlayerState> worldState = client.getWorldState();
-        if (worldState != null) { // Check if worldState is null
-            synchronized (worldState) { // Synchronize access to avoid concurrent modification issues
-                // Render player rectangles
-                shapeRenderer.setProjectionMatrix(camera.combined);
+        if (worldState != null) {
+            synchronized (worldState) {
                 shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
                 for (PlayerState state : worldState.values()) {
-                    if (state != null) { // Check if PlayerState is null
-                        shapeRenderer.setColor(0, 0, 1, 1); // Blue color for all players
+                    if (state != null) {
+                        shapeRenderer.setColor(0, 0, 1, 1); // Blue for other players
                         shapeRenderer.rect(state.x, state.y, player.getPlayerWidth(), player.getPlayerHeight());
                     }
                 }
                 shapeRenderer.end();
-    
-                // Render player names
+
                 spriteBatch.setProjectionMatrix(camera.combined);
                 spriteBatch.begin();
                 for (Integer id : worldState.keySet()) {
                     PlayerState state = worldState.get(id);
                     if (state != null) {
-                        String displayName = client.getUsernameForPlayer(id); // Get the username for the player
+                        String displayName = client.getUsernameForPlayer(id);
                         if (displayName != null) {
-                            font.draw(spriteBatch, displayName, state.x + player.getPlayerWidth() / 4, state.y + player.getPlayerHeight() + 20);
+                            font.draw(spriteBatch, displayName,
+                                    state.x + player.getPlayerWidth() / 4,
+                                    state.y + player.getPlayerHeight() + 20);
                         }
                     }
                 }
@@ -142,6 +165,24 @@ public class GameScreen implements Screen {
             }
         }
     }
+
+    private void handleCollisions(float delta) {
+        Rectangle playerBounds = player.getBoundingRectangle();
+    
+        // Predict the new Y position
+        float predictedY = player.getPlayerY() + playerVelocityY * delta;
+        Rectangle predictedBounds = new Rectangle(playerBounds.x, predictedY, playerBounds.width, playerBounds.height);
+    
+        if (platform.overlaps(predictedBounds) && playerVelocityY < 0) {
+            // Land smoothly on platform
+            player.setPlayerY(platform.y + platform.height);
+            playerVelocityY = 0;
+            isJumping = false;
+        } else {
+            // No collision, apply gravity
+            player.setPlayerY(predictedY);
+        }
+    }    
 
     @Override
     public void resize(int width, int height) {
@@ -153,21 +194,7 @@ public class GameScreen implements Screen {
 
     @Override
     public void resume() {
-        Pixmap originalPixmap = new Pixmap(Gdx.files.internal("assets/crosshair.png"));
-        int scaledWidth = originalPixmap.getWidth() / 2;
-        int scaledHeight = originalPixmap.getHeight() / 2;
-        Pixmap scaledPixmap = new Pixmap(scaledWidth, scaledHeight, originalPixmap.getFormat());
-        
-        scaledPixmap.drawPixmap(originalPixmap, 
-            0, 0, originalPixmap.getWidth(), originalPixmap.getHeight(), // Source dimensions
-            0, 0, scaledWidth, scaledHeight // Target dimensions
-        );
-        
-        Cursor cursor = Gdx.graphics.newCursor(scaledPixmap, scaledWidth / 2, scaledHeight / 2);
-        Gdx.graphics.setCursor(cursor);
-        
-        originalPixmap.dispose();
-        scaledPixmap.dispose();
+        applyCustomCursor();
     }
 
     @Override
