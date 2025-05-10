@@ -3,6 +3,7 @@ package com.torinwolff;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
@@ -14,6 +15,7 @@ public class MainMenuScreen implements Screen {
     private final GameClient client;
     private Stage stage;
     private Skin skin;
+    private Label debugLabel;
 
     public MainMenuScreen(Main game, GameClient client) {
         this.game = game;
@@ -30,6 +32,9 @@ public class MainMenuScreen implements Screen {
 
         // Create a "Play" button
         TextButton playButton = new TextButton("Play", skin);
+
+        debugLabel = new Label("", skin);
+        debugLabel.setVisible(false);
 
         playButton.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ClickListener() {
             @Override
@@ -65,11 +70,19 @@ public class MainMenuScreen implements Screen {
                             });                        
                         } catch (Exception e) {
                             System.err.println("Failed to connect to the server: " + e.getMessage());
+                            Gdx.app.postRunnable(() -> {
+                                debugLabel.setText("Failed to connect to the server.");
+                                debugLabel.setVisible(true);
+                            });
                         }
                     }).start();
                 } else {
                     // Handle empty username case
                     System.out.println("Please enter a valid username.");
+                    Gdx.app.postRunnable(() -> {
+                        debugLabel.setText("Please enter a valid username.");
+                        debugLabel.setVisible(true);
+                    });
                 }
             }
         });
@@ -83,6 +96,8 @@ public class MainMenuScreen implements Screen {
         table.add(usernameField).width(300).height(50).padBottom(20); // Add padding below the TextField
         table.row(); // Move to the next row
         table.add(playButton).width(200).height(50);
+        table.row(); // Move to the next row
+        table.add(debugLabel).padTop(20);
 
         // Add the table to the stage
         stage.addActor(table);
