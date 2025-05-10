@@ -5,6 +5,7 @@ public class DodgeballState {
     public float y;
     public float width;
     public float height;
+    public float velocityY; // Add vertical velocity
 
     public DodgeballState() {}
 
@@ -13,5 +14,6 @@ public class DodgeballState {
         this.y = y;
         this.width = width;
         this.height = height;
+        this.velocityY = 0;
     }
 }

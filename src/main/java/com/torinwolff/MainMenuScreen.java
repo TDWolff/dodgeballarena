@@ -61,7 +61,6 @@ public class MainMenuScreen implements Screen {
                                 try {
                                     System.out.println("Switching to GameScreen...");
                                     game.setScreen(new GameScreen(game, username, client));
-                                    dispose();
                                     System.out.println("GameScreen set successfully.");
                                 } catch (Exception e) {
                                     System.err.println("Failed to switch to GameScreen: " + e.getMessage());

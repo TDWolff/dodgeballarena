@@ -10,16 +10,41 @@ public class DodgeballManager {
     private final List<DodgeballState> dodgeballs = new ArrayList<>();
     private final Random random = new Random();
 
+    private float gravity = -500f; // Default gravity for dodgeballs (pixels/sec^2)
+    private float floorY = 0f;     // Y position of the floor
+
+    public void setGravity(float gravity) {
+        this.gravity = gravity;
+    }
+
+    public void setFloorY(float floorY) {
+        this.floorY = floorY;
+    }
+
     public List<DodgeballState> getDodgeballs() {
         return dodgeballs;
     }
 
     public void spawnDodgeball(float mapWidth, float y, float width, float height) {
         if (dodgeballs.size() >= 10) {
-            return; // Do not spawn more than 10 dodgeballs
+            return;
         }
         float x = random.nextFloat() * (mapWidth - width);
         dodgeballs.add(new DodgeballState(x, y, width, height));
+    }
+
+    public void update(float delta) {
+        for (DodgeballState ball : dodgeballs) {
+            // Apply gravity
+            ball.velocityY += gravity * delta;
+            // Update position
+            ball.y += ball.velocityY * delta;
+            // Collision with floor
+            if (ball.y <= floorY) {
+                ball.y = floorY;
+                ball.velocityY = 0;
+            }
+        }
     }
 
     public void render(ShapeRenderer shapeRenderer) {
@@ -27,10 +52,5 @@ public class DodgeballManager {
         for (DodgeballState ball : dodgeballs) {
             shapeRenderer.circle(ball.x + ball.width / 2, ball.y + ball.height / 2, ball.width / 2);
         }
-    }
-
-    // Optionally: update dodgeballs (e.g., movement, collision)
-    public void update(float delta) {
-        // Implement movement or logic if needed
     }
 }

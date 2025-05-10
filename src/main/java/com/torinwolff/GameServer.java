@@ -29,6 +29,8 @@ public class GameServer {
         kryo.register(java.util.ArrayList.class); // If sending lists of dodgeballs
         kryo.register(ConcurrentHashMap.class);
 
+        dodgeballManager.setFloorY(110); // platform.y + platform.height (i.e., -90 + 200)
+
         // Add a listener to handle incoming messages
         server.addListener(new com.esotericsoftware.kryonet.Listener() {
             @Override
@@ -40,10 +42,24 @@ public class GameServer {
 
                 if (server.getConnections().length == 1 && (dodgeballSpawnerThread == null || !dodgeballSpawnerThread.isAlive())) {
                     dodgeballSpawnerThread = new Thread(() -> {
+                        long lastTime = System.currentTimeMillis();
+                        float spawnTimer = 0f;
                         while (server.getConnections().length > 0) {
                             try {
-                                Thread.sleep(1000); // Spawn every second
-                                dodgeballManager.spawnDodgeball(800, 400, 20, 20);
+                                Thread.sleep(16); // ~60 FPS update rate
+                                long now = System.currentTimeMillis();
+                                float delta = (now - lastTime) / 1000f;
+                                lastTime = now;
+                        
+                                dodgeballManager.update(delta);
+                        
+                                // Spawn a new dodgeball every 1 second
+                                spawnTimer += delta;
+                                if (spawnTimer >= 1f) {
+                                    dodgeballManager.spawnDodgeball(800, 500, 32, 32); // Example values: mapWidth=800, y=500, width=32, height=32
+                                    spawnTimer = 0f;
+                                }
+                        
                                 server.sendToAllTCP(dodgeballManager.getDodgeballs());
                             } catch (InterruptedException e) {
                                 Thread.currentThread().interrupt();
