@@ -13,6 +13,9 @@ public class GameServer {
     private final ConcurrentHashMap<Integer, String> playerUsernames = new ConcurrentHashMap<>();
     private int nextPlayerId = 1; // Counter for assigning unique player IDs
 
+    private DodgeballManager dodgeballManager = new DodgeballManager();
+    private Thread dodgeballSpawnerThread; // Track the spawner thread
+
     public void start() throws IOException {
         server = new Server();
         server.start();
@@ -22,6 +25,8 @@ public class GameServer {
         Kryo kryo = server.getKryo();
         kryo.register(String.class);
         kryo.register(PlayerState.class);
+        kryo.register(DodgeballState.class); // Register DodgeballState
+        kryo.register(java.util.ArrayList.class); // If sending lists of dodgeballs
         kryo.register(ConcurrentHashMap.class);
 
         // Add a listener to handle incoming messages
@@ -32,6 +37,22 @@ public class GameServer {
                 int playerId = nextPlayerId++;
                 connection.sendTCP("PLAYER_ID:" + playerId);
                 System.out.println("Assigned Player ID " + playerId + " to connection " + connection.getID());
+
+                if (server.getConnections().length == 1 && (dodgeballSpawnerThread == null || !dodgeballSpawnerThread.isAlive())) {
+                    dodgeballSpawnerThread = new Thread(() -> {
+                        while (server.getConnections().length > 0) {
+                            try {
+                                Thread.sleep(1000); // Spawn every second
+                                dodgeballManager.spawnDodgeball(800, 400, 20, 20);
+                                server.sendToAllTCP(dodgeballManager.getDodgeballs());
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
+                                break;
+                            }
+                        }
+                    });
+                    dodgeballSpawnerThread.start();
+                }
             }
 
             @Override
@@ -64,6 +85,8 @@ public class GameServer {
             
                     // Broadcast the updated world state to all clients
                     server.sendToAllTCP(worldState);
+
+                    server.sendToAllTCP(dodgeballManager.getDodgeballs());
 
                     // Broadcast the updated player usernames to all clients
                     ConcurrentHashMap<Integer, String> updatedUsernames = new ConcurrentHashMap<>(playerUsernames);

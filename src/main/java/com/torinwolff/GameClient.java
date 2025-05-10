@@ -1,6 +1,8 @@
 package com.torinwolff;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.esotericsoftware.kryo.Kryo;
@@ -14,6 +16,12 @@ public class GameClient {
 
     private boolean isConnected = false; // Add a flag to track connection status
 
+    private final List<DodgeballState> dodgeballs = new ArrayList<>();
+
+    public List<DodgeballState> getDodgeballs() {
+        return dodgeballs;
+    }
+
 
     public void start() throws IOException {
         client = new Client();
@@ -23,11 +31,13 @@ public class GameClient {
         Kryo kryo = client.getKryo();
         kryo.register(String.class); // Register String
         kryo.register(PlayerState.class); // Register PlayerState
+        kryo.register(DodgeballState.class); // Register DodgeballState
+        kryo.register(java.util.ArrayList.class); // If sending lists of dodgeballs
         kryo.register(ConcurrentHashMap.class); // Register ConcurrentHashMap
         kryo.register(java.util.HashMap.class); // Ensure compatibility with HashMap if used
 
         // Connect to the server
-        client.connect(5000, "35.163.100.41", 54555, 54777);
+        client.connect(5000, "localhost", 54555, 54777);
 
         // Add a listener to handle incoming messages
         client.addListener(new com.esotericsoftware.kryonet.Listener() {
@@ -45,12 +55,19 @@ public class GameClient {
 
             @Override
             public void received(com.esotericsoftware.kryonet.Connection connection, Object object) {
-                if (object instanceof ConcurrentHashMap) {
-                    // Determine if the message is a worldState or playerUsernames update
+                if (object instanceof ArrayList) {
+                    ArrayList<?> list = (ArrayList<?>) object;
+                    if (!list.isEmpty() && list.get(0) instanceof DodgeballState) {
+                        synchronized (dodgeballs) {
+                            dodgeballs.clear();
+                            for (Object o : list) {
+                                dodgeballs.add((DodgeballState) o);
+                            }
+                        }
+                    }
+                } else if (object instanceof ConcurrentHashMap) {
                     ConcurrentHashMap<?, ?> map = (ConcurrentHashMap<?, ?>) object;
-            
                     if (!map.isEmpty() && map.values().iterator().next() instanceof PlayerState) {
-                        // It's a worldState update
                         @SuppressWarnings("unchecked")
                         ConcurrentHashMap<Integer, PlayerState> updatedState = (ConcurrentHashMap<Integer, PlayerState>) map;
                         synchronized (worldState) {
@@ -58,14 +75,11 @@ public class GameClient {
                             worldState.putAll(updatedState);
                         }
                     } else if (!map.isEmpty() && map.values().iterator().next() instanceof String) {
-                        // It's a playerUsernames update
                         @SuppressWarnings("unchecked")
                         ConcurrentHashMap<Integer, String> updatedUsernames = (ConcurrentHashMap<Integer, String>) map;
                         synchronized (playerUsernames) {
-                            // Update the map incrementally
-                            for (Integer id : updatedUsernames.keySet()) {
-                                playerUsernames.put(id, updatedUsernames.get(id));
-                            }
+                            playerUsernames.clear();
+                            playerUsernames.putAll(updatedUsernames);
                         }
                     }
                 } else if (object instanceof String) {

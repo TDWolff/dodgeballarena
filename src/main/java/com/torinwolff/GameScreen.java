@@ -1,5 +1,6 @@
 package com.torinwolff;
 
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.badlogic.gdx.Gdx;
@@ -27,6 +28,8 @@ public class GameScreen implements Screen {
     private static final float JUMP_VELOCITY = 500;
     private float playerVelocityY = 0;
     private boolean isJumping = false;
+
+    private final DodgeballManager dodgeballManager = new DodgeballManager();
 
     private final Rectangle platform = new Rectangle(0, -90, 800, 200);
 
@@ -132,6 +135,18 @@ public class GameScreen implements Screen {
             player.setPlayerX(player.getPlayerX() + 200 * delta);
         }
 
+        List<DodgeballState> receivedDodgeballs = client.getDodgeballs();
+        synchronized (receivedDodgeballs) {
+            dodgeballManager.getDodgeballs().clear();
+            dodgeballManager.getDodgeballs().addAll(receivedDodgeballs);
+        }
+    
+        // Render dodgeballs
+        shapeRenderer.setProjectionMatrix(camera.combined);
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        dodgeballManager.render(shapeRenderer);
+        shapeRenderer.end();
+
         // Send player state
         client.sendPlayerState(player.getPlayerX(), player.getPlayerY());
 
@@ -148,8 +163,10 @@ public class GameScreen implements Screen {
                 }
                 shapeRenderer.end();
 
+                // ...existing code...
                 spriteBatch.setProjectionMatrix(camera.combined);
                 spriteBatch.begin();
+                font.setColor(0, 0, 0, 1);
                 for (Integer id : worldState.keySet()) {
                     PlayerState state = worldState.get(id);
                     if (state != null) {
@@ -162,6 +179,7 @@ public class GameScreen implements Screen {
                     }
                 }
                 spriteBatch.end();
+                // ...existing code...
             }
         }
     }
