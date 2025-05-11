@@ -11,6 +11,10 @@ public class DodgeballState {
     public int heldByPlayerId = -1; // -1 means not held
     public boolean isInAir = false;
 
+    public int lastThrowerId = -1;
+    public long lastThrownTimestamp = 0; // in milliseconds
+    public long pickupAvailableTimestamp = 0; // Time (ms) when ball can next be picked up
+
     public DodgeballState() {}
 
     public DodgeballState(float x, float y, float width, float height) {

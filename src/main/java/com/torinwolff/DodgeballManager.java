@@ -59,10 +59,11 @@ public class DodgeballManager {
                         ball.y = floorY;
                         ball.velocityY = 0;
                         ball.velocityX = 0;
-                        ball.isInAir = false; // Ball can now be picked up again
+                        ball.isInAir = false;
+                        ball.pickupAvailableTimestamp = System.currentTimeMillis() + 750;
                     }
                 } else {
-                    // Ball is on ground, not held, not in air
+                    // Ball is on ground
                     if (ball.y > floorY) {
                         ball.velocityY += gravity * delta;
                         ball.y += ball.velocityY * delta;
@@ -72,7 +73,7 @@ public class DodgeballManager {
                         }
                     }
                 }
-            } else {
+            } else { // Ball is held by a player
                 ball.velocityY = 0;
                 ball.velocityX = 0;
                 ball.isInAir = false;

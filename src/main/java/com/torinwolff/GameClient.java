@@ -54,6 +54,7 @@ public class GameClient {
     
         // Connect to the server
         client.connect(5000, "localhost", 54555, 54777);
+        isConnected = true;
     
         // Add a listener to handle incoming messages
         client.addListener(new com.esotericsoftware.kryonet.Listener() {
@@ -117,7 +118,7 @@ public class GameClient {
     }
 
     public void sendPlayerState(float x, float y) {
-        PlayerState playerState = new PlayerState(x, y);
+        PlayerState playerState = new PlayerState(x, y, true);
         client.sendTCP(playerState);
     }
 

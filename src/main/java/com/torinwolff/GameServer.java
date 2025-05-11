@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -40,17 +41,16 @@ public class GameServer {
         Kryo kryo = server.getKryo();
         kryo.register(String.class);
         kryo.register(PlayerState.class);
-        kryo.register(DodgeballState.class); // Register DodgeballState
-        kryo.register(java.util.ArrayList.class); // If sending lists of dodgeballs
+        kryo.register(DodgeballState.class);
+        kryo.register(java.util.ArrayList.class);
         kryo.register(ConcurrentHashMap.class);
         kryo.register(PickupDodgeballMessage.class);
         kryo.register(ThrowDodgeballMessage.class);
 
 
 
-        dodgeballManager.setFloorY(110); // platform.y + platform.height (i.e., -90 + 200)
+        dodgeballManager.setFloorY(110);
 
-        // Add a listener to handle incoming messages
         server.addListener(new com.esotericsoftware.kryonet.Listener() {
             @Override
             public void connected(com.esotericsoftware.kryonet.Connection connection) {
@@ -126,6 +126,26 @@ public class GameServer {
                             ball.x = state.x + (playerWidth - ballWidth) / 2f;
                             ball.y = state.y + playerHeight + 10;
                         }
+                        if (ball.heldByPlayerId == -1 && ball.isInAir) {
+                            long now = System.currentTimeMillis();
+                            for (Map.Entry<Integer, PlayerState> entry : worldState.entrySet()) {
+                                int otherPlayerId = entry.getKey();
+                                PlayerState player = entry.getValue();
+                    
+                                if (otherPlayerId == ball.lastThrowerId && now - ball.lastThrownTimestamp < 300) {
+                                    continue;
+                                }
+                    
+                                if (ball.x < player.x + 50 && ball.x + ball.width > player.x &&
+                                    ball.y < player.y + 50 && ball.y + ball.height > player.y) {
+                                    System.out.println("Ball hit player: " + otherPlayerId);
+                                    ball.isInAir = false;
+                                    player.isAlive = false;
+                                    ball.pickupAvailableTimestamp = System.currentTimeMillis() + 750;
+                                    break;
+                                }
+                            }
+                        }
                     }
             
                     // Broadcast the updated world state to all clients
@@ -140,7 +160,7 @@ public class GameServer {
                 if (object instanceof PickupDodgeballMessage) {
                     PickupDodgeballMessage msg = (PickupDodgeballMessage) object;
                     DodgeballState ball = dodgeballManager.getDodgeballs().get(msg.dodgeballIndex);
-                    if (ball.heldByPlayerId == -1 && !ball.isInAir) {
+                    if (ball.heldByPlayerId == -1 && !ball.isInAir && System.currentTimeMillis() >= ball.pickupAvailableTimestamp) {
                         // Ensure player doesn't already hold a ball
                         boolean alreadyHolding = false;
                         for (DodgeballState b : dodgeballManager.getDodgeballs()) {
@@ -177,8 +197,9 @@ public class GameServer {
                         ball.heldByPlayerId = -1;
                         ball.isInAir = true;
                         ball.velocityY = msg.velocityY;
-                        ball.velocityX = msg.velocityX; // Add velocityX to DodgeballState if not present
-                        // Optionally set ball.x, ball.y to player's hand position
+                        ball.velocityX = msg.velocityX;
+                        ball.lastThrowerId = msg.playerId;
+                        ball.lastThrownTimestamp = System.currentTimeMillis();
                         server.sendToAllTCP(dodgeballManager.getDodgeballs());
                     }
                 }
