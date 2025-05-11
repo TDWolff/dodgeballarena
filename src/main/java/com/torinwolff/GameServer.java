@@ -140,11 +140,22 @@ public class GameServer {
                                     ball.y < player.y + 50 && ball.y + ball.height > player.y) {
                                     System.out.println("Ball hit player: " + otherPlayerId);
                                     ball.isInAir = false;
-                                    player.isAlive = false;
+                                    if (player.isAlive) {
+                                        player.isAlive = false;
+                                    }
                                     ball.pickupAvailableTimestamp = System.currentTimeMillis() + 750;
                                     break;
                                 }
                             }
+                        }
+                    }
+
+                    for (Map.Entry<Integer, PlayerState> entry : worldState.entrySet()) {
+                        int id = entry.getKey();
+                        PlayerState player = entry.getValue();
+                        if (!player.isAlive) {
+                            System.out.println("Player " + id + " is dead.");
+                            // handle logic for dead players and what comes next
                         }
                     }
             
