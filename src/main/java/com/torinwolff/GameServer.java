@@ -29,6 +29,8 @@ public class GameServer {
         kryo.register(java.util.ArrayList.class); // If sending lists of dodgeballs
         kryo.register(ConcurrentHashMap.class);
         kryo.register(PickupDodgeballMessage.class);
+        kryo.register(ThrowDodgeballMessage.class);
+
 
 
         dodgeballManager.setFloorY(110); // platform.y + platform.height (i.e., -90 + 200)
@@ -123,7 +125,7 @@ public class GameServer {
                 if (object instanceof PickupDodgeballMessage) {
                     PickupDodgeballMessage msg = (PickupDodgeballMessage) object;
                     DodgeballState ball = dodgeballManager.getDodgeballs().get(msg.dodgeballIndex);
-                    if (ball.heldByPlayerId == -1) {
+                    if (ball.heldByPlayerId == -1 && !ball.isInAir) {
                         // Ensure player doesn't already hold a ball
                         boolean alreadyHolding = false;
                         for (DodgeballState b : dodgeballManager.getDodgeballs()) {
@@ -151,6 +153,18 @@ public class GameServer {
                             // Broadcast updated dodgeballs to all clients
                             server.sendToAllTCP(dodgeballManager.getDodgeballs());
                         }
+                    }
+                }
+                if (object instanceof ThrowDodgeballMessage) {
+                    ThrowDodgeballMessage msg = (ThrowDodgeballMessage) object;
+                    DodgeballState ball = dodgeballManager.getDodgeballs().get(msg.dodgeballIndex);
+                    if (ball.heldByPlayerId == msg.playerId) {
+                        ball.heldByPlayerId = -1;
+                        ball.isInAir = true;
+                        ball.velocityY = msg.velocityY;
+                        ball.velocityX = msg.velocityX; // Add velocityX to DodgeballState if not present
+                        // Optionally set ball.x, ball.y to player's hand position
+                        server.sendToAllTCP(dodgeballManager.getDodgeballs());
                     }
                 }
             }

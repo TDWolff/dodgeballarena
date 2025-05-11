@@ -51,14 +51,31 @@ public class DodgeballManager {
     public void update(float delta) {
         for (DodgeballState ball : dodgeballs) {
             if (ball.heldByPlayerId == -1) {
-                ball.velocityY += gravity * delta;
-                ball.y += ball.velocityY * delta;
-                if (ball.y <= floorY) {
-                    ball.y = floorY;
-                    ball.velocityY = 0;
+                if (ball.isInAir) {
+                    ball.velocityY += gravity * delta;
+                    ball.x += ball.velocityX * delta;
+                    ball.y += ball.velocityY * delta;
+                    if (ball.y <= floorY) {
+                        ball.y = floorY;
+                        ball.velocityY = 0;
+                        ball.velocityX = 0;
+                        ball.isInAir = false; // Ball can now be picked up again
+                    }
+                } else {
+                    // Ball is on ground, not held, not in air
+                    if (ball.y > floorY) {
+                        ball.velocityY += gravity * delta;
+                        ball.y += ball.velocityY * delta;
+                        if (ball.y <= floorY) {
+                            ball.y = floorY;
+                            ball.velocityY = 0;
+                        }
+                    }
                 }
             } else {
                 ball.velocityY = 0;
+                ball.velocityX = 0;
+                ball.isInAir = false;
             }
         }
     }

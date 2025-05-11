@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Cursor;
 import com.badlogic.gdx.graphics.GL20;
@@ -13,6 +14,7 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.math.Vector3;
 
 public class GameScreen implements Screen {
     private final Main game;
@@ -158,6 +160,33 @@ public class GameScreen implements Screen {
                 if (ball.heldByPlayerId == -1 &&
                     playerRect.overlaps(new Rectangle(ball.x, ball.y, ball.width, ball.height))) {
                     client.sendPickupDodgeball(playerId, i);
+                    break;
+                }
+            }
+        }
+
+        List<DodgeballState> balls = dodgeballManager.getDodgeballs();
+
+        if (Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
+            // Find held ball
+            for (int i = 0; i < balls.size(); i++) {
+                DodgeballState ball = balls.get(i);
+                if (ball.heldByPlayerId == playerId) {
+                    // Get cursor world coordinates
+                    Vector3 mouse = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
+                    camera.unproject(mouse);
+        
+                    float playerCenterX = player.getPlayerX() + 50 / 2f;
+                    float playerCenterY = player.getPlayerY() + 50 / 2f;
+                    float dx = mouse.x - playerCenterX;
+                    float dy = mouse.y - playerCenterY;
+        
+                    float magnitude = (float)Math.sqrt(dx*dx + dy*dy);
+                    float speed = 800f; // Tune this value for throw power
+                    float vx = dx / magnitude * speed;
+                    float vy = dy / magnitude * speed;
+        
+                    client.sendThrowDodgeball(playerId, i, vx, vy);
                     break;
                 }
             }
