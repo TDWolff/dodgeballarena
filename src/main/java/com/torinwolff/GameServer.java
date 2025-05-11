@@ -1,6 +1,9 @@
 package com.torinwolff;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -20,6 +23,18 @@ public class GameServer {
         server = new Server();
         server.start();
         server.bind(54555, 54777);
+
+        try (InputStream is = getClass().getClassLoader().getResourceAsStream("init.txt")) {
+            if (is != null) {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    System.out.println(line);
+                }
+            } else {
+                System.out.println("init.txt not found in resources.");
+            }
+        }
 
         // Register classes for serialization
         Kryo kryo = server.getKryo();
