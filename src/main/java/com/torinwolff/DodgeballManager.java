@@ -21,6 +21,21 @@ public class DodgeballManager {
         this.floorY = floorY;
     }
 
+    public boolean tryPickupDodgeball(float playerX, float playerY, float playerWidth, float playerHeight, int playerId) {
+        for (DodgeballState ball : dodgeballs) {
+            if (ball.heldByPlayerId == -1 && intersects(playerX, playerY, playerWidth, playerHeight, ball)) {
+                ball.heldByPlayerId = playerId;
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    private boolean intersects(float x, float y, float w, float h, DodgeballState ball) {
+        return x < ball.x + ball.width && x + w > ball.x &&
+               y < ball.y + ball.height && y + h > ball.y;
+    }
+
     public List<DodgeballState> getDodgeballs() {
         return dodgeballs;
     }
@@ -35,13 +50,14 @@ public class DodgeballManager {
 
     public void update(float delta) {
         for (DodgeballState ball : dodgeballs) {
-            // Apply gravity
-            ball.velocityY += gravity * delta;
-            // Update position
-            ball.y += ball.velocityY * delta;
-            // Collision with floor
-            if (ball.y <= floorY) {
-                ball.y = floorY;
+            if (ball.heldByPlayerId == -1) {
+                ball.velocityY += gravity * delta;
+                ball.y += ball.velocityY * delta;
+                if (ball.y <= floorY) {
+                    ball.y = floorY;
+                    ball.velocityY = 0;
+                }
+            } else {
                 ball.velocityY = 0;
             }
         }

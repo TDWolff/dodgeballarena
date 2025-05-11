@@ -7,6 +7,8 @@ public class DodgeballState {
     public float height;
     public float velocityY; // Add vertical velocity
 
+    public int heldByPlayerId = -1; // -1 means not held
+
     public DodgeballState() {}
 
     public DodgeballState(float x, float y, float width, float height) {

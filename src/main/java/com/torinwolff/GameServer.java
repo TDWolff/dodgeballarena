@@ -28,6 +28,8 @@ public class GameServer {
         kryo.register(DodgeballState.class); // Register DodgeballState
         kryo.register(java.util.ArrayList.class); // If sending lists of dodgeballs
         kryo.register(ConcurrentHashMap.class);
+        kryo.register(PickupDodgeballMessage.class);
+
 
         dodgeballManager.setFloorY(110); // platform.y + platform.height (i.e., -90 + 200)
 
@@ -98,6 +100,16 @@ public class GameServer {
                     PlayerState state = (PlayerState) object;
                     int playerId = connection.getID();
                     worldState.put(playerId, state);
+
+                    for (DodgeballState ball : dodgeballManager.getDodgeballs()) {
+                        if (ball.heldByPlayerId == playerId) {
+                            float ballWidth = ball.width;
+                            float playerWidth = 50;  // Use your actual player width
+                            float playerHeight = 50; // Use your actual player height
+                            ball.x = state.x + (playerWidth - ballWidth) / 2f;
+                            ball.y = state.y + playerHeight + 10;
+                        }
+                    }
             
                     // Broadcast the updated world state to all clients
                     server.sendToAllTCP(worldState);
@@ -108,20 +120,57 @@ public class GameServer {
                     ConcurrentHashMap<Integer, String> updatedUsernames = new ConcurrentHashMap<>(playerUsernames);
                     server.sendToAllTCP(updatedUsernames);
                 }
+                if (object instanceof PickupDodgeballMessage) {
+                    PickupDodgeballMessage msg = (PickupDodgeballMessage) object;
+                    DodgeballState ball = dodgeballManager.getDodgeballs().get(msg.dodgeballIndex);
+                    if (ball.heldByPlayerId == -1) {
+                        // Ensure player doesn't already hold a ball
+                        boolean alreadyHolding = false;
+                        for (DodgeballState b : dodgeballManager.getDodgeballs()) {
+                            if (b.heldByPlayerId == msg.playerId) {
+                                alreadyHolding = true;
+                                break;
+                            }
+                        }
+                        if (!alreadyHolding) {
+                            ball.heldByPlayerId = msg.playerId;
+                
+                            // Position the dodgeball above the player's head
+                            PlayerState holder = worldState.get(msg.playerId);
+                            if (holder != null) {
+                                float ballWidth = ball.width;
+                                float playerWidth = 50;
+                                float playerHeight = 50;
+                                // Center the ball horizontally above the player, and a bit above their head
+                                ball.x = holder.x + (playerWidth - ballWidth) / 2f;
+                                ball.y = holder.y + playerHeight + 10; // 10 pixels above head
+                            } else {
+                                System.err.println("Player not found for ID: " + msg.playerId);
+                            }
+                
+                            // Broadcast updated dodgeballs to all clients
+                            server.sendToAllTCP(dodgeballManager.getDodgeballs());
+                        }
+                    }
+                }
             }
 
             @Override
             public void disconnected(com.esotericsoftware.kryonet.Connection connection) {
                 int playerId = connection.getID();
-
+                for (DodgeballState ball : dodgeballManager.getDodgeballs()) {
+                    if (ball.heldByPlayerId == playerId) {
+                        ball.heldByPlayerId = -1;
+                        ball.velocityY = 0;
+                    }
+                }
+            
                 // Remove the player's state and username
                 worldState.remove(playerId);
                 playerUsernames.remove(playerId);
-
-                System.out.println("Player " + playerId + " disconnected.");
-
-                // Broadcast the updated world state to all clients
-                server.sendToAllTCP(worldState);
+            
+                // Broadcast updated dodgeballs to all clients
+                server.sendToAllTCP(dodgeballManager.getDodgeballs());
             }
         });
 

@@ -27,6 +27,10 @@ public class GameClient {
         return dodgeballs;
     }
 
+    public void sendPickupDodgeball(int playerId, int dodgeballIndex) {
+        PickupDodgeballMessage msg = new PickupDodgeballMessage(playerId, dodgeballIndex);
+        client.sendTCP(msg);
+    }
 
     public void start() throws IOException {
         client = new Client();
@@ -39,6 +43,7 @@ public class GameClient {
         kryo.register(DodgeballState.class); // Register DodgeballState
         kryo.register(java.util.ArrayList.class); // If sending lists of dodgeballs
         kryo.register(ConcurrentHashMap.class); // Register ConcurrentHashMap
+        kryo.register(PickupDodgeballMessage.class);
         kryo.register(java.util.HashMap.class); // Ensure compatibility with HashMap if used
     
         // Connect to the server

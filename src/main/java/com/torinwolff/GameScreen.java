@@ -140,7 +140,29 @@ public class GameScreen implements Screen {
             dodgeballManager.getDodgeballs().clear();
             dodgeballManager.getDodgeballs().addAll(receivedDodgeballs);
         }
-    
+
+        int playerId = client.getPlayerId();
+        boolean alreadyHolding = false;
+        for (DodgeballState ball : dodgeballManager.getDodgeballs()) {
+            if (ball.heldByPlayerId == playerId) {
+                alreadyHolding = true;
+                break;
+            }
+        }
+
+        if (!alreadyHolding) {
+            Rectangle playerRect = player.getBoundingRectangle();
+            List<DodgeballState> balls = dodgeballManager.getDodgeballs();
+            for (int i = 0; i < balls.size(); i++) {
+                DodgeballState ball = balls.get(i);
+                if (ball.heldByPlayerId == -1 &&
+                    playerRect.overlaps(new Rectangle(ball.x, ball.y, ball.width, ball.height))) {
+                    client.sendPickupDodgeball(playerId, i);
+                    break;
+                }
+            }
+        }
+
         // Render dodgeballs
         shapeRenderer.setProjectionMatrix(camera.combined);
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
@@ -162,8 +184,6 @@ public class GameScreen implements Screen {
                     }
                 }
                 shapeRenderer.end();
-
-                // ...existing code...
                 spriteBatch.setProjectionMatrix(camera.combined);
                 spriteBatch.begin();
                 font.setColor(0, 0, 0, 1);
@@ -179,7 +199,6 @@ public class GameScreen implements Screen {
                     }
                 }
                 spriteBatch.end();
-                // ...existing code...
             }
         }
     }
