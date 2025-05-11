@@ -39,17 +39,17 @@ public class MainMenuScreen implements Screen {
         playButton.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ClickListener() {
             @Override
             public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
-                stage.unfocusAll();
+                stage.setKeyboardFocus(null);
+                stage.unfocusAll();   
                 String username = usernameField.getText();
                 if (!username.isEmpty()) {
                     new Thread(() -> {
                         try {
                             // Attempt to connect the client to the server
                             System.out.println("Connecting to the server...");
-                            client.start(); // Start the client and connect to the server
-        
-                            // Wait for the client to connect
-                            while (!client.isConnected()) {
+                            client.start();
+
+                            while (!client.isReadyToSendUsername()) {
                                 Thread.sleep(100); // Wait for 100ms before checking again
                             }
         
@@ -59,9 +59,7 @@ public class MainMenuScreen implements Screen {
         
                             Gdx.app.postRunnable(() -> {
                                 try {
-                                    System.out.println("Switching to GameScreen...");
                                     game.setScreen(new GameScreen(game, username, client));
-                                    System.out.println("GameScreen set successfully.");
                                 } catch (Exception e) {
                                     System.err.println("Failed to switch to GameScreen: " + e.getMessage());
                                     e.printStackTrace();

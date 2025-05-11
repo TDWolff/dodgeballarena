@@ -15,6 +15,11 @@ public class GameClient {
     private final ConcurrentHashMap<Integer, String> playerUsernames = new ConcurrentHashMap<>();
 
     private boolean isConnected = false; // Add a flag to track connection status
+    private boolean playerIdReceived = false; // Add this flag
+
+    public boolean isReadyToSendUsername() {
+        return isConnected && playerIdReceived;
+    }
 
     private final List<DodgeballState> dodgeballs = new ArrayList<>();
 
@@ -26,7 +31,7 @@ public class GameClient {
     public void start() throws IOException {
         client = new Client();
         client.start();
-
+    
         // Register classes for serialization
         Kryo kryo = client.getKryo();
         kryo.register(String.class); // Register String
@@ -35,24 +40,18 @@ public class GameClient {
         kryo.register(java.util.ArrayList.class); // If sending lists of dodgeballs
         kryo.register(ConcurrentHashMap.class); // Register ConcurrentHashMap
         kryo.register(java.util.HashMap.class); // Ensure compatibility with HashMap if used
-
+    
         // Connect to the server
         client.connect(5000, "localhost", 54555, 54777);
-
+    
         // Add a listener to handle incoming messages
         client.addListener(new com.esotericsoftware.kryonet.Listener() {
-            @Override
-            public void connected(com.esotericsoftware.kryonet.Connection connection) {
-                isConnected = true;
-                System.out.println("Client connected to the server.");
-            }
-
             @Override
             public void disconnected(com.esotericsoftware.kryonet.Connection connection) {
                 isConnected = false;
                 System.out.println("Client disconnected from the server.");
             }
-
+    
             @Override
             public void received(com.esotericsoftware.kryonet.Connection connection, Object object) {
                 if (object instanceof ArrayList) {
@@ -82,10 +81,15 @@ public class GameClient {
                             playerUsernames.putAll(updatedUsernames);
                         }
                     }
-                } else if (object instanceof String) {
+                }
+                if (object instanceof String) {
                     String message = (String) object;
                     if (message.startsWith("PLAYER_ID:")) {
+                        if (!isConnected) {
+                            isConnected = true;
+                        }
                         playerId = Integer.parseInt(message.substring("PLAYER_ID:".length()));
+                        playerIdReceived = true;
                         System.out.println("Received Player ID from server: " + playerId);
                     }
                 }
@@ -107,11 +111,10 @@ public class GameClient {
     }
 
     public void sendUsername(String username) {
-        if (client != null && client.isConnected()) {
-            client.sendTCP("USERNAME:" + username);
-        } else {
-            throw new IllegalStateException("Client is not connected to the server.");
+        if (!isReadyToSendUsername()) {
+            throw new IllegalStateException("Client is not ready to send username. Wait for connection and player ID.");
         }
+        client.sendTCP("USERNAME:" + username);
     }
 
     public String getUsernameForPlayer(int id) {
