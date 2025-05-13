@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.esotericsoftware.kryo.Kryo;
@@ -15,6 +14,7 @@ public class GameServer {
     private Server server;
     private final ConcurrentHashMap<Integer, PlayerState> worldState = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Integer, String> playerUsernames = new ConcurrentHashMap<>();
+    private final java.util.Set<Integer> deadPlayers = java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
     private int nextPlayerId = 1; // Counter for assigning unique player IDs
 
     private DodgeballManager dodgeballManager = new DodgeballManager();
@@ -46,6 +46,7 @@ public class GameServer {
         kryo.register(ConcurrentHashMap.class);
         kryo.register(PickupDodgeballMessage.class);
         kryo.register(ThrowDodgeballMessage.class);
+        kryo.register(DeathMessage.class);
 
 
 
@@ -97,18 +98,24 @@ public class GameServer {
                     if (message.startsWith("USERNAME:")) {
                         // Extract the username
                         String username = message.substring("USERNAME:".length()).trim();
-            
+                    
                         if (!username.matches("[a-zA-Z0-9]+")) {
                             System.err.println("Invalid username received: " + username);
                             connection.sendTCP("ERROR: Invalid username. Only letters and numbers are allowed.");
                             return;
                         }
-            
-                        String uniqueUsername = ensureUniqueUsername(username);
-                        playerUsernames.put(connection.getID(), uniqueUsername);
-            
-                        System.out.println("Received username: " + uniqueUsername + " from connection " + connection.getID());
-                        connection.sendTCP("USERNAME_ACCEPTED:" + uniqueUsername);
+                    
+                        // Check for duplicate username
+                        if (playerUsernames.containsValue(username)) {
+                            System.err.println("Duplicate username attempted: " + username);
+                            connection.sendTCP("ERROR: Username already taken. Please choose another.");
+                            return;
+                        }
+                    
+                        playerUsernames.put(connection.getID(), username);
+                    
+                        System.out.println("Received username: " + username + " from connection " + connection.getID());
+                        connection.sendTCP("USERNAME_ACCEPTED:" + username);
                     } else {
                         System.err.println("Unknown message format: " + message);
                     }
@@ -135,7 +142,6 @@ public class GameServer {
                                 if (otherPlayerId == ball.lastThrowerId && now - ball.lastThrownTimestamp < 300) {
                                     continue;
                                 }
-                    
                                 if (ball.x < player.x + 50 && ball.x + ball.width > player.x &&
                                     ball.y < player.y + 50 && ball.y + ball.height > player.y) {
                                     System.out.println("Ball hit player: " + otherPlayerId);
@@ -143,19 +149,21 @@ public class GameServer {
                                     if (player.isAlive) {
                                         player.isAlive = false;
                                     }
+                                    deadPlayers.add(otherPlayerId);
+                                
+                                    // Count alive players
+                                    long aliveCount = worldState.values().stream().filter(p -> p.isAlive).count();
+                                    String deadUsername = playerUsernames.get(otherPlayerId);
+                                    if (aliveCount == 1) {
+                                        server.sendToAllTCP(new DeathMessage(otherPlayerId, deadUsername));
+                                    } else {
+                                        server.sendToTCP(otherPlayerId, new DeathMessage(otherPlayerId, deadUsername));
+                                    }
+                                
                                     ball.pickupAvailableTimestamp = System.currentTimeMillis() + 750;
                                     break;
                                 }
                             }
-                        }
-                    }
-
-                    for (Map.Entry<Integer, PlayerState> entry : worldState.entrySet()) {
-                        int id = entry.getKey();
-                        PlayerState player = entry.getValue();
-                        if (!player.isAlive) {
-                            System.out.println("Player " + id + " is dead.");
-                            // handle logic for dead players and what comes next
                         }
                     }
             
@@ -242,20 +250,6 @@ public class GameServer {
         if (server != null) {
             server.stop();
         }
-    }
-
-    private String ensureUniqueUsername(String username) {
-        Random random = new Random();
-        String uniqueUsername = username;
-    
-        // Check if the username already exists
-        while (playerUsernames.containsValue(uniqueUsername)) {
-            // Generate a random 3-digit number
-            int randomNumber = 100 + random.nextInt(900); // Generates a number between 100 and 999
-            uniqueUsername = username + randomNumber;
-        }
-    
-        return uniqueUsername;
     }
 
     public static void main(String[] args) {

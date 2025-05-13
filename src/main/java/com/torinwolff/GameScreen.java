@@ -25,6 +25,7 @@ public class GameScreen implements Screen {
     private final SpriteBatch spriteBatch;
     private final MainPlayer player;
     private final String username;
+    public String displayName;
 
     private static final float GRAVITY = -10.8f * 100;
     private static final float JUMP_VELOCITY = 500;
@@ -53,7 +54,9 @@ public class GameScreen implements Screen {
 
     @Override
     public void show() {
-        System.out.println("Welcome " + username + " to the game!");
+        displayName = client.getMyUsername();
+        System.out.println("Player ID: " + client.getPlayerId());
+        System.out.println("Welcome " + displayName + " to the game!");
 
         applyCustomCursor();
 
@@ -104,6 +107,27 @@ public class GameScreen implements Screen {
     public void render(float delta) {
         Gdx.gl.glClearColor(0.95f, 0.95f, 0.95f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+        if (client.isDead) {
+            Gdx.app.postRunnable(() -> {
+                try {
+                    game.setScreen(new DeathScreen(game, displayName, client, client.deadUsername));
+                } catch (Exception e) {
+                    System.err.println("Failed to switch to DeathScreen: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            });
+        }
+        if (client.isSpectating) {
+            Gdx.app.postRunnable(() -> {
+                try {
+                    game.setScreen(new DeathScreen(game, displayName, client, client.deadUsername));
+                } catch (Exception e) {
+                    System.err.println("Failed to switch to DeathScreen: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            });
+        }
 
         camera.update();
 

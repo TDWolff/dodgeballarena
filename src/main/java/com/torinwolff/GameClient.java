@@ -11,11 +11,16 @@ import com.esotericsoftware.kryonet.Client;
 public class GameClient {
     private Client client;
     private int playerId = -1;
+    public boolean isDead = false;
+    public boolean isSpectating = false;
     private final ConcurrentHashMap<Integer, PlayerState> worldState = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Integer, String> playerUsernames = new ConcurrentHashMap<>();
 
     private boolean isConnected = false; // Add a flag to track connection status
     private boolean playerIdReceived = false; // Add this flag
+
+    public String deadUsername = null;
+    private String myUsername;
 
     public boolean isReadyToSendUsername() {
         return isConnected && playerIdReceived;
@@ -50,6 +55,7 @@ public class GameClient {
         kryo.register(ConcurrentHashMap.class); // Register ConcurrentHashMap
         kryo.register(PickupDodgeballMessage.class);
         kryo.register(ThrowDodgeballMessage.class);
+        kryo.register(DeathMessage.class);
         kryo.register(java.util.HashMap.class); // Ensure compatibility with HashMap if used
     
         // Connect to the server
@@ -104,6 +110,18 @@ public class GameClient {
                         playerIdReceived = true;
                         System.out.println("Received Player ID from server: " + playerId);
                     }
+                    if (message.startsWith("USERNAME_ACCEPTED:")) {
+                        myUsername = message.substring("USERNAME_ACCEPTED:".length());
+                        System.out.println("Server accepted username: " + myUsername);
+                    }
+                }
+                if (object instanceof DeathMessage) {
+                    DeathMessage msg = (DeathMessage) object;
+                    deadUsername = msg.deadUsername;
+                    if (msg.playerId == playerId) {
+                        isDead = true;
+                    }
+                    isSpectating = true;
                 }
             }
         });
@@ -127,6 +145,10 @@ public class GameClient {
             throw new IllegalStateException("Client is not ready to send username. Wait for connection and player ID.");
         }
         client.sendTCP("USERNAME:" + username);
+    }
+
+    public String getMyUsername() {
+        return myUsername;
     }
 
     public String getUsernameForPlayer(int id) {

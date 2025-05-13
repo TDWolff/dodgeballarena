@@ -17,6 +17,8 @@ public class MainMenuScreen implements Screen {
     private Skin skin;
     private Label debugLabel;
 
+    public String acceptedUsername;
+
     public MainMenuScreen(Main game, GameClient client) {
         this.game = game;
         this.client = client;
@@ -68,7 +70,7 @@ public class MainMenuScreen implements Screen {
                         } catch (Exception e) {
                             System.err.println("Failed to connect to the server: " + e.getMessage());
                             Gdx.app.postRunnable(() -> {
-                                debugLabel.setText("Failed to connect to the server.");
+                                debugLabel.setText("Failed to connect to the server. Please try a different username and try again.");
                                 debugLabel.setVisible(true);
                             });
                         }
