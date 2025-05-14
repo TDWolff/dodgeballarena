@@ -56,7 +56,7 @@ public class GameServer {
             @Override
             public void connected(com.esotericsoftware.kryonet.Connection connection) {
                 // Assign a unique player ID
-                int playerId = nextPlayerId++;
+                int playerId = connection.getID();
                 connection.sendTCP("PLAYER_ID:" + playerId);
                 System.out.println("Assigned Player ID " + playerId + " to connection " + connection.getID());
 
@@ -234,12 +234,21 @@ public class GameServer {
                     }
                 }
             
-                // Remove the player's state and username
                 worldState.remove(playerId);
                 playerUsernames.remove(playerId);
+                deadPlayers.remove(playerId);
             
                 // Broadcast updated dodgeballs to all clients
                 server.sendToAllTCP(dodgeballManager.getDodgeballs());
+            
+                if (server.getConnections().length == 0) {
+                    worldState.clear();
+                    playerUsernames.clear();
+                    deadPlayers.clear();
+                    dodgeballManager.getDodgeballs().clear();
+                    nextPlayerId = 1; // <-- Add this line to reset player ID assignment
+                    System.out.println("All players disconnected. Game state reset.");
+                }
             }
         });
 

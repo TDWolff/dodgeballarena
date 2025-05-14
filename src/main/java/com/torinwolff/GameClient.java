@@ -10,7 +10,7 @@ import com.esotericsoftware.kryonet.Client;
 
 public class GameClient {
     private Client client;
-    private int playerId = -1;
+    private int playerId;
     public boolean isDead = false;
     public boolean isSpectating = false;
     private final ConcurrentHashMap<Integer, PlayerState> worldState = new ConcurrentHashMap<>();

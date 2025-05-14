@@ -108,7 +108,21 @@ public class GameScreen implements Screen {
         Gdx.gl.glClearColor(0.95f, 0.95f, 0.95f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        if (client.isDead) {
+        if (client.isDead || client.isSpectating) {
+            // Remove player from world state
+            ConcurrentHashMap<Integer, PlayerState> worldState = client.getWorldState();
+            int playerId = client.getPlayerId();
+            if (worldState != null) {
+                worldState.remove(playerId);
+            }
+            List<DodgeballState> balls = client.getDodgeballs();
+            synchronized (balls) {
+                for (DodgeballState ball : balls) {
+                    if (ball.heldByPlayerId == playerId) {
+                        ball.heldByPlayerId = -1;
+                    }
+                }
+            }
             Gdx.app.postRunnable(() -> {
                 try {
                     game.setScreen(new DeathScreen(game, displayName, client, client.deadUsername));
@@ -117,16 +131,10 @@ public class GameScreen implements Screen {
                     e.printStackTrace();
                 }
             });
-        }
-        if (client.isSpectating) {
-            Gdx.app.postRunnable(() -> {
-                try {
-                    game.setScreen(new DeathScreen(game, displayName, client, client.deadUsername));
-                } catch (Exception e) {
-                    System.err.println("Failed to switch to DeathScreen: " + e.getMessage());
-                    e.printStackTrace();
-                }
-            });
+            client.isDead = false;
+            client.isSpectating = false;
+            client.stop();
+            return; // Stop further rendering
         }
 
         camera.update();

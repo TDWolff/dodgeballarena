@@ -1,5 +1,7 @@
 package com.torinwolff;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -48,11 +50,16 @@ public class DeathScreen  implements Screen {
     
         spriteBatch.begin();
         if (username.equals(deadUsername)) {
-            font.draw(spriteBatch, "You have died! Press R to restart.", 300, 300);
-            // Handle input for restart, etc.
+            font.draw(spriteBatch, "You have died! Press R to go back to main menu.", 300, 300);
+            // handle logic for when player presses R, send them to main menu
+            if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
+                game.setScreen(new MainMenuScreen(game, client));
+            }
         } else {
-            font.draw(spriteBatch, deadUsername + " died! You are spectating.", 300, 300);
-            // No input handling for spectators
+            font.draw(spriteBatch, "You have won! Press R to go back to main menu.", 300, 300);
+            if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
+                game.setScreen(new MainMenuScreen(game, client));
+            }
         }
         spriteBatch.end();
     }
