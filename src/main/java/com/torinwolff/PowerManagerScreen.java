@@ -10,6 +10,7 @@ public class PowerManagerScreen implements Screen {
     private final GameClient client;
     private final Stage stage;
     private final Skin skin;
+    private int GL_COLOR_BUFFER_BIT = 16384;
 
     public PowerManagerScreen(Main game, GameClient client) {
         this.game = game;
@@ -27,7 +28,7 @@ public class PowerManagerScreen implements Screen {
     @Override
     public void render(float delta) {
         Gdx.gl.glClearColor(0, 1, 0, 1); // Set background to green
-        Gdx.gl.glClear(Gdx.gl.GL_COLOR_BUFFER_BIT);
+        Gdx.gl.glClear(GL_COLOR_BUFFER_BIT);
         stage.act(delta);
         stage.draw();
     }
