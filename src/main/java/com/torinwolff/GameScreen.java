@@ -32,7 +32,8 @@ public class GameScreen implements Screen {
     private float playerVelocityY = 0;
     private boolean isJumping = false;
 
-    private final DodgeballManager dodgeballManager = new DodgeballManager();
+    private final DodgeballManager dodgeballManager = new DodgeballManager();    
+    private boolean[] powerUps = PowerManagerScreen.powerUps;
 
     private final Rectangle platform = new Rectangle(0, -90, 800, 200);
 
@@ -157,8 +158,13 @@ public class GameScreen implements Screen {
 
         // Jump
         if (Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.SPACE) && !isJumping) {
-            playerVelocityY = JUMP_VELOCITY;
-            isJumping = true;
+            if (powerUps[0]) {
+                playerVelocityY = JUMP_VELOCITY * 1.4f;
+                isJumping = true;
+            } else {
+                playerVelocityY = JUMP_VELOCITY;
+                isJumping = true;
+            }
         }
 
         // Horizontal movement
