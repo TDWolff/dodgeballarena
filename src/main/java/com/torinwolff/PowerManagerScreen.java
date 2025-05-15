@@ -55,7 +55,6 @@ public class PowerManagerScreen implements Screen {
         table.center();
 
         // Slot machine wheels
-        // ...existing code...
         Table wheelsTable = new Table();
         for (int i = 0; i < 3; i++) {
             wheelIndices[i] = random.nextInt(POWER_NAMES.length);
@@ -70,7 +69,6 @@ public class PowerManagerScreen implements Screen {
             wheelsTable.add(labelBox).width(235).height(80).pad(20);
         }
         table.add(wheelsTable).colspan(1).row();
-        // ...existing code...
 
         // Spin button
         TextButton spinButton = new TextButton("Spin!", skin);
