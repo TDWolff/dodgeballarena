@@ -30,13 +30,17 @@ public class MainMenuScreen implements Screen {
 
         // Create a TextField for username input
         TextField usernameField = new TextField("", skin);
-        usernameField.setMessageText("Enter your username");
-
+        usernameField.setMessageText("Enter your username"); // Always set the message text
+        if (client.mainMenuUsername != null && !client.mainMenuUsername.isEmpty()) {
+            usernameField.setText(client.mainMenuUsername);
+        }
+        
         TextButton powerManagerField = new TextButton("Power Manager", skin);
 
         powerManagerField.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ClickListener() {
             @Override
             public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
+                client.mainMenuUsername = usernameField.getText();
                 game.setScreen(new PowerManagerScreen(game, client));
             }
         });

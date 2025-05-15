@@ -21,6 +21,7 @@ public class GameClient {
 
     public String deadUsername = null;
     private String myUsername;
+    public String mainMenuUsername = "";
 
     public boolean isReadyToSendUsername() {
         return isConnected && playerIdReceived;
