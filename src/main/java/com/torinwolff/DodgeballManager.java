@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch; // FIXED: Correct import
 
 public class DodgeballManager {
     private final List<DodgeballState> dodgeballs = new ArrayList<>();
@@ -81,10 +83,17 @@ public class DodgeballManager {
         }
     }
 
-    public void render(ShapeRenderer shapeRenderer) {
-        shapeRenderer.setColor(1, 0, 0, 1); // Red
+    private final Texture dodgeballTexture = new Texture(Gdx.files.internal("assets/dodgeball.png"));
+
+    public void render(SpriteBatch batch) {
+        batch.begin();
         for (DodgeballState ball : dodgeballs) {
-            shapeRenderer.circle(ball.x + ball.width / 2, ball.y + ball.height / 2, ball.width / 2);
+            batch.draw(dodgeballTexture, ball.x, ball.y, ball.width, ball.height);
         }
+        batch.end();
+    }
+
+    public void dispose() {
+        dodgeballTexture.dispose();
     }
 }

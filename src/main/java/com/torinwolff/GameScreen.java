@@ -261,7 +261,7 @@ public class GameScreen implements Screen {
         // Render dodgeballs
         shapeRenderer.setProjectionMatrix(camera.combined);
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        dodgeballManager.render(shapeRenderer);
+        dodgeballManager.render(spriteBatch);
         shapeRenderer.end();
 
         // Send player state
