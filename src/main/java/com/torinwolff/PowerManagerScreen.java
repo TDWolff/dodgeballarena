@@ -5,6 +5,8 @@ import java.util.Random;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
@@ -17,6 +19,14 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 public class PowerManagerScreen implements Screen {
     private final Stage stage;
     private final Skin skin;
+
+    private SpriteBatch spriteBatch = new SpriteBatch();
+    private Texture background = new Texture(Gdx.files.internal("assets/background.png"));
+    private float bgOffsetX = 0;
+    private float bgOffsetY = 0;
+    private float bgVelX = 60f; // pixels per second
+    private float bgVelY = 40f; // pixels per second
+
 
     public static final String[] POWER_NAMES = {
         "Super Jump", "Speed Boost", "Double Life", "Invisibility", "Super Dodgeball"
@@ -45,15 +55,22 @@ public class PowerManagerScreen implements Screen {
         table.center();
 
         // Slot machine wheels
+        // ...existing code...
         Table wheelsTable = new Table();
         for (int i = 0; i < 3; i++) {
             wheelIndices[i] = random.nextInt(POWER_NAMES.length);
             wheelLabels[i] = new Label(getPowerLabel(wheelIndices[i]), skin);
             wheelLabels[i].setAlignment(Align.center);
             wheelLabels[i].setFontScale(2f);
-            wheelsTable.add(wheelLabels[i]).width(200).height(80).pad(20);
+        
+            Table labelBox = new Table(skin);
+            labelBox.setBackground(skin.newDrawable("white", 0.2196f, 0.2039f, 0.2039f, 1f));
+            labelBox.add(wheelLabels[i]).expand().fill();
+        
+            wheelsTable.add(labelBox).width(235).height(80).pad(20);
         }
         table.add(wheelsTable).colspan(1).row();
+        // ...existing code...
 
         // Spin button
         TextButton spinButton = new TextButton("Spin!", skin);
@@ -86,7 +103,7 @@ public class PowerManagerScreen implements Screen {
     private void startSpin(TextButton spinButton) {
         final int[] spinTimes = {random.nextInt(20) + 20, random.nextInt(20) + 30, random.nextInt(20) + 40};
         final int[] counters = {0, 0, 0};
-
+    
         Timer.schedule(new Timer.Task() {
             @Override
             public void run() {
@@ -94,7 +111,16 @@ public class PowerManagerScreen implements Screen {
                 for (int i = 0; i < 3; i++) {
                     if (counters[i] < spinTimes[i]) {
                         counters[i]++;
-                        wheelIndices[i] = random.nextInt(POWER_NAMES.length);
+                        // Reroll logic for non-stackable powers
+                        int newIndex;
+                        do {
+                            newIndex = random.nextInt(POWER_NAMES.length);
+                        } while (
+                            !CAN_BE_STACKED[newIndex] && // If not stackable
+                            (wheelIndices[0] == newIndex || wheelIndices[1] == newIndex || wheelIndices[2] == newIndex) // Already present
+                            && (i == 0 ? false : true) // Only check previous wheels
+                        );
+                        wheelIndices[i] = newIndex;
                         wheelLabels[i].setText(getPowerLabel(wheelIndices[i]));
                         allStopped = false;
                     }
@@ -185,8 +211,56 @@ public class PowerManagerScreen implements Screen {
 
     @Override
     public void render(float delta) {
+        // Update background offset
+        bgOffsetX += bgVelX * delta;
+        bgOffsetY += bgVelY * delta;
+
+        int viewportWidth = Gdx.graphics.getWidth();
+        int viewportHeight = Gdx.graphics.getHeight();
+
+        float scale = 2.0f;
+        int regionWidth = (int)(viewportWidth * scale);
+        int regionHeight = (int)(viewportHeight * scale);
+
+        if (regionWidth > background.getWidth()) regionWidth = background.getWidth();
+        if (regionHeight > background.getHeight()) regionHeight = background.getHeight();
+
+        float maxOffsetX = background.getWidth() - regionWidth;
+        float maxOffsetY = background.getHeight() - regionHeight;
+
+        if (bgOffsetX < 0) {
+            bgOffsetX = 0;
+            bgVelX = Math.abs(bgVelX);
+        } else if (bgOffsetX > maxOffsetX) {
+            bgOffsetX = maxOffsetX;
+            bgVelX = -Math.abs(bgVelX);
+        }
+
+        if (bgOffsetY < 0) {
+            bgOffsetY = 0;
+            bgVelY = Math.abs(bgVelY);
+        } else if (bgOffsetY > maxOffsetY) {
+            bgOffsetY = maxOffsetY;
+            bgVelY = -Math.abs(bgVelY);
+        }
+
+        int regionX = (int)Math.min(bgOffsetX, maxOffsetX);
+        int regionY = (int)Math.min(bgOffsetY, maxOffsetY);
+
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+        spriteBatch.begin();
+        spriteBatch.draw(
+            background,
+            0, 0,
+            viewportWidth, viewportHeight,
+            regionX, regionY,
+            regionWidth, regionHeight,
+            false, false
+        );
+        spriteBatch.end();
+
         stage.act(delta);
         stage.draw();
     }
@@ -209,5 +283,7 @@ public class PowerManagerScreen implements Screen {
     public void dispose() {
         stage.dispose();
         skin.dispose();
+        spriteBatch.dispose();
+        background.dispose();
     }
 }
