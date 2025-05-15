@@ -158,21 +158,49 @@ public class GameScreen implements Screen {
 
         // Jump
         if (Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.SPACE) && !isJumping) {
-            if (powerUps[0]) {
-                playerVelocityY = JUMP_VELOCITY * 1.4f;
-                isJumping = true;
-            } else {
-                playerVelocityY = JUMP_VELOCITY;
-                isJumping = true;
+            switch (PowerManagerScreen.powerLevels[0]) {
+                case 3:
+                    playerVelocityY = JUMP_VELOCITY * 1.9f;
+                    isJumping = true;
+                    break;
+                case 2:
+                    playerVelocityY = JUMP_VELOCITY * 1.6f;
+                    isJumping = true;
+                    break;
+                case 1:
+                    playerVelocityY = JUMP_VELOCITY * 1.3f;
+                    isJumping = true;
+                    break;
+                default:
+                    playerVelocityY = JUMP_VELOCITY;
+                    isJumping = true;
+                    break;
             }
         }
 
         // Horizontal movement
+        float speedMultiplier;
+        switch (PowerManagerScreen.powerLevels[1]) {
+            case 3:
+                speedMultiplier = 1.9f;
+                break;
+            case 2:
+                speedMultiplier = 1.6f;
+                break;
+            case 1:
+                speedMultiplier = 1.3f;
+                break;
+            default:
+                speedMultiplier = 1.0f;
+                break;
+        }
+        float moveSpeed = 200 * speedMultiplier;
+        
         if (Gdx.input.isKeyPressed(com.badlogic.gdx.Input.Keys.A)) {
-            player.setPlayerX(player.getPlayerX() - 200 * delta);
+            player.setPlayerX(player.getPlayerX() - moveSpeed * delta);
         }
         if (Gdx.input.isKeyPressed(com.badlogic.gdx.Input.Keys.D)) {
-            player.setPlayerX(player.getPlayerX() + 200 * delta);
+            player.setPlayerX(player.getPlayerX() + moveSpeed * delta);
         }
 
         List<DodgeballState> receivedDodgeballs = client.getDodgeballs();
