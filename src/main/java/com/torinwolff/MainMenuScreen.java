@@ -2,6 +2,8 @@ package com.torinwolff;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
@@ -16,6 +18,7 @@ public class MainMenuScreen implements Screen {
     private Stage stage;
     private Skin skin;
     private Label debugLabel;
+    private static final Texture background = new Texture(Gdx.files.internal("assets/background.png"));
 
     public String acceptedUsername;
 
@@ -34,7 +37,7 @@ public class MainMenuScreen implements Screen {
         if (client.mainMenuUsername != null && !client.mainMenuUsername.isEmpty()) {
             usernameField.setText(client.mainMenuUsername);
         }
-        
+
         TextButton powerManagerField = new TextButton("Power Manager", skin);
 
         powerManagerField.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ClickListener() {
@@ -120,11 +123,82 @@ public class MainMenuScreen implements Screen {
     @Override
     public void show() {}
 
+    private SpriteBatch spriteBatch = new SpriteBatch();
+    
+    private float bgOffsetX = 0;
+    private float bgOffsetY = 0;
+    private float bgVelX = 60f; // pixels per second
+    private float bgVelY = 40f; // pixels per second
+    
     @Override
     public void render(float delta) {
-        // Update and draw the stage
+        // Update background offset
+        bgOffsetX += bgVelX * delta;
+        bgOffsetY += bgVelY * delta;
+    
+        int viewportWidth = Gdx.graphics.getWidth();
+        int viewportHeight = Gdx.graphics.getHeight();
+    
+        // Use scale = 1.0f for 1:1, or <1.0f to "zoom out"
+        float scale = 2.0f;
+        int regionWidth = (int)(viewportWidth * scale);
+        int regionHeight = (int)(viewportHeight * scale);
+    
+        // Clamp regionWidth/regionHeight to not exceed texture size
+        if (regionWidth > background.getWidth()) regionWidth = background.getWidth();
+        if (regionHeight > background.getHeight()) regionHeight = background.getHeight();
+    
+        // Clamp and bounce
+        float maxOffsetX = background.getWidth() - regionWidth;
+        float maxOffsetY = background.getHeight() - regionHeight;
+    
+        // Start at top-left of the image
+        if (bgOffsetX == 0 && bgOffsetY == 0) {
+            bgOffsetX = 0;
+            bgOffsetY = 0;
+        }
+    
+        // Bounce logic
+        if (bgOffsetX < 0) {
+            bgOffsetX = 0;
+            bgVelX = Math.abs(bgVelX);
+        } else if (bgOffsetX > maxOffsetX) {
+            bgOffsetX = maxOffsetX;
+            bgVelX = -Math.abs(bgVelX);
+        }
+    
+        if (bgOffsetY < 0) {
+            bgOffsetY = 0;
+            bgVelY = Math.abs(bgVelY);
+        } else if (bgOffsetY > maxOffsetY) {
+            bgOffsetY = maxOffsetY;
+            bgVelY = -Math.abs(bgVelY);
+        }
+    
+        int regionX = (int)Math.min(bgOffsetX, maxOffsetX);
+        int regionY = (int)Math.min(bgOffsetY, maxOffsetY);
+    
+        spriteBatch.begin();
+        spriteBatch.draw(
+            background,
+            0, 0, // draw at (0,0) in the window
+            viewportWidth, viewportHeight, // size to draw on screen
+            regionX, regionY,              // region x, y in texture
+            regionWidth, regionHeight,     // region width, height in texture
+            false, false // flipX, flipY
+        );
+        spriteBatch.end();
+        // Draw the UI
         stage.act(delta);
         stage.draw();
+    }
+    
+    @Override
+    public void dispose() {
+        stage.dispose();
+        skin.dispose();
+        spriteBatch.dispose();
+        background.dispose();
     }
 
     @Override
@@ -140,10 +214,4 @@ public class MainMenuScreen implements Screen {
 
     @Override
     public void hide() {}
-
-    @Override
-    public void dispose() {
-        stage.dispose();
-        skin.dispose();
-    }
 }
