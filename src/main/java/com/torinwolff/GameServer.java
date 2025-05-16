@@ -47,8 +47,7 @@ public class GameServer {
         kryo.register(PickupDodgeballMessage.class);
         kryo.register(ThrowDodgeballMessage.class);
         kryo.register(DeathMessage.class);
-
-
+        kryo.register(DoubleLifeRequestMessage.class);
 
         dodgeballManager.setFloorY(110);
 
@@ -123,7 +122,15 @@ public class GameServer {
                     // Handle player state
                     PlayerState state = (PlayerState) object;
                     int playerId = connection.getID();
-                    worldState.put(playerId, state);
+                    PlayerState serverState = worldState.get(playerId);
+                    if (serverState != null) {
+                        serverState.x = state.x;
+                        serverState.y = state.y;
+                    } else {
+                        state.doubleLife = false;
+                        state.isAlive = true;
+                        worldState.put(playerId, state);
+                    }
 
                     for (DodgeballState ball : dodgeballManager.getDodgeballs()) {
                         if (ball.heldByPlayerId == playerId) {
@@ -135,33 +142,48 @@ public class GameServer {
                         }
                         if (ball.heldByPlayerId == -1 && ball.isInAir) {
                             long now = System.currentTimeMillis();
-                            for (Map.Entry<Integer, PlayerState> entry : worldState.entrySet()) {
+                                                        for (Map.Entry<Integer, PlayerState> entry : worldState.entrySet()) {
                                 int otherPlayerId = entry.getKey();
                                 PlayerState player = entry.getValue();
-                    
+                            
                                 if (otherPlayerId == ball.lastThrowerId && now - ball.lastThrownTimestamp < 300) {
                                     continue;
                                 }
+                                if (System.currentTimeMillis() < player.invulnerableUntil) {
+                                    continue; // Player is invulnerable, skip
+                                }
+
                                 if (ball.x < player.x + 50 && ball.x + ball.width > player.x &&
                                     ball.y < player.y + 50 && ball.y + ball.height > player.y) {
                                     System.out.println("Ball hit player: " + otherPlayerId);
-                                    ball.isInAir = false;
-                                    if (player.isAlive) {
-                                        player.isAlive = false;
-                                    }
-                                    deadPlayers.add(otherPlayerId);
-                                
-                                    // Count alive players
-                                    long aliveCount = worldState.values().stream().filter(p -> p.isAlive).count();
-                                    String deadUsername = playerUsernames.get(otherPlayerId);
-                                    if (aliveCount == 1) {
-                                        server.sendToAllTCP(new DeathMessage(otherPlayerId, deadUsername));
+                                    System.out.println("doubleLife for player " + otherPlayerId + ": " + player.doubleLife);
+                                    if (player.doubleLife) {
+                                        System.out.println(player.doubleLife);
+                                        player.doubleLife = false;
+                                        player.invulnerableUntil = System.currentTimeMillis() + 700; // 1s invuln
+                                        ball.isInAir = false;
+                                        ball.pickupAvailableTimestamp = System.currentTimeMillis() + 750;
+                                        break;
                                     } else {
-                                        server.sendToTCP(otherPlayerId, new DeathMessage(otherPlayerId, deadUsername));
+                                        ball.isInAir = false;
+                                        if (player.isAlive) {
+                                            player.isAlive = false;
+                                            deadPlayers.add(otherPlayerId);
+                                            System.out.println("Player " + otherPlayerId + " has died.");
+                                        }
+                                    
+                                        // Count alive players
+                                        long aliveCount = worldState.values().stream().filter(p -> p.isAlive).count();
+                                        String deadUsername = playerUsernames.get(otherPlayerId);
+                                        if (aliveCount == 1) {
+                                            server.sendToAllTCP(new DeathMessage(otherPlayerId, deadUsername));
+                                        } else {
+                                            server.sendToTCP(otherPlayerId, new DeathMessage(otherPlayerId, deadUsername));
+                                        }
+                                    
+                                        ball.pickupAvailableTimestamp = System.currentTimeMillis() + 750;
+                                        break;
                                     }
-                                
-                                    ball.pickupAvailableTimestamp = System.currentTimeMillis() + 750;
-                                    break;
                                 }
                             }
                         }
@@ -220,6 +242,15 @@ public class GameServer {
                         ball.lastThrowerId = msg.playerId;
                         ball.lastThrownTimestamp = System.currentTimeMillis();
                         server.sendToAllTCP(dodgeballManager.getDodgeballs());
+                    }
+                }
+                if (object instanceof DoubleLifeRequestMessage) {
+                    DoubleLifeRequestMessage msg = (DoubleLifeRequestMessage) object;
+                    PlayerState player = worldState.get(msg.playerId);
+                    System.out.println("Double life request from player: " + msg.playerId);
+                    if (player != null) {
+                        player.doubleLife = true;
+                        System.out.println("Double life granted to player: " + msg.playerId);
                     }
                 }
             }

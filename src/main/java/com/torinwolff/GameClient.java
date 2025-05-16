@@ -57,6 +57,7 @@ public class GameClient {
         kryo.register(PickupDodgeballMessage.class);
         kryo.register(ThrowDodgeballMessage.class);
         kryo.register(DeathMessage.class);
+        kryo.register(DoubleLifeRequestMessage.class);
         kryo.register(java.util.HashMap.class); // Ensure compatibility with HashMap if used
     
         // Connect to the server
@@ -164,5 +165,12 @@ public class GameClient {
         if (client != null) {
             client.stop();
         }
+    }
+
+    public void sendDoubleLifeRequest(int playerId) {
+        DoubleLifeRequestMessage msg = new DoubleLifeRequestMessage(playerId);
+        client.sendTCP(msg);
+        System.out.println("Sent double life request for player ID: " + playerId);
+
     }
 }

@@ -4,10 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch; // FIXED: Correct import
-
 public class DodgeballManager {
     private final List<DodgeballState> dodgeballs = new ArrayList<>();
     private final Random random = new Random();
@@ -81,19 +77,5 @@ public class DodgeballManager {
                 ball.isInAir = false;
             }
         }
-    }
-
-    private final Texture dodgeballTexture = new Texture(Gdx.files.internal("assets/dodgeball.png"));
-
-    public void render(SpriteBatch batch) {
-        batch.begin();
-        for (DodgeballState ball : dodgeballs) {
-            batch.draw(dodgeballTexture, ball.x, ball.y, ball.width, ball.height);
-        }
-        batch.end();
-    }
-
-    public void dispose() {
-        dodgeballTexture.dispose();
     }
 }

@@ -10,6 +10,7 @@ import com.badlogic.gdx.graphics.Cursor;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -31,9 +32,11 @@ public class GameScreen implements Screen {
     private static final float JUMP_VELOCITY = 500;
     private float playerVelocityY = 0;
     private boolean isJumping = false;
+    boolean hasSent = false;
 
     private final DodgeballManager dodgeballManager = new DodgeballManager();    
     private boolean[] powerUps = PowerManagerScreen.powerUps;
+    private Texture dodgeballTexture;
 
     private final Rectangle platform = new Rectangle(0, -90, 800, 200);
 
@@ -58,6 +61,7 @@ public class GameScreen implements Screen {
         displayName = client.getMyUsername();
         System.out.println("Player ID: " + client.getPlayerId());
         System.out.println("Welcome " + displayName + " to the game!");
+        dodgeballTexture = new Texture(Gdx.files.internal("assets/dodgeball.png"));
 
         applyCustomCursor();
 
@@ -108,6 +112,11 @@ public class GameScreen implements Screen {
     public void render(float delta) {
         Gdx.gl.glClearColor(0.86f, 0.86f, 0.86f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+        spriteBatch.begin();
+        for (DodgeballState ball : dodgeballManager.getDodgeballs()) {
+            spriteBatch.draw(dodgeballTexture, ball.x, ball.y, ball.width, ball.height);
+        }
+        spriteBatch.end();
 
         if (client.isDead || client.isSpectating) {
             // Remove player from world state
@@ -261,11 +270,17 @@ public class GameScreen implements Screen {
         // Render dodgeballs
         shapeRenderer.setProjectionMatrix(camera.combined);
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        dodgeballManager.render(spriteBatch);
+        
         shapeRenderer.end();
 
         // Send player state
         client.sendPlayerState(player.getPlayerX(), player.getPlayerY());
+
+        if (!hasSent && powerUps[2]) {
+            client.sendDoubleLifeRequest(playerId);
+            hasSent = true;
+        }
+
 
         // Render other players
         ConcurrentHashMap<Integer, PlayerState> worldState = client.getWorldState();
@@ -336,6 +351,9 @@ public class GameScreen implements Screen {
 
     @Override
     public void dispose() {
+        if (dodgeballTexture != null) {
+            dodgeballTexture.dispose();
+        }
         shapeRenderer.dispose();
         font.dispose();
         spriteBatch.dispose();

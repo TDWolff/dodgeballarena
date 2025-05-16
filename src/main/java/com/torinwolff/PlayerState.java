@@ -4,6 +4,8 @@ public class PlayerState {
     public float x;
     public float y;
     public boolean isAlive = true;
+    public boolean doubleLife;
+    public long invulnerableUntil = 0; // timestamp in ms
 
     public PlayerState() {
     }
