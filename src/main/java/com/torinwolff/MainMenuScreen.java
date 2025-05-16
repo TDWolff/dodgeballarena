@@ -5,6 +5,7 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
@@ -19,6 +20,7 @@ public class MainMenuScreen implements Screen {
     private Skin skin;
     private Label debugLabel;
     private static final Texture background = new Texture(Gdx.files.internal("assets/background.png"));
+    private static final Texture logoTexture = new Texture(Gdx.files.internal("assets/logo.png"));
 
     public String acceptedUsername;
 
@@ -30,6 +32,11 @@ public class MainMenuScreen implements Screen {
 
         // Load the default skin
         skin = new Skin(Gdx.files.internal("assets/uiskin.json"));
+
+        Image logoImage = new Image(logoTexture);
+        logoImage.setSize(700, 330.4f);
+        logoImage.setPosition(Gdx.graphics.getWidth() / 2 - logoImage.getWidth() / 2, Gdx.graphics.getHeight() - logoImage.getHeight()); 
+        stage.addActor(logoImage);
 
         // Create a TextField for username input
         TextField usernameField = new TextField("", skin);
@@ -104,6 +111,7 @@ public class MainMenuScreen implements Screen {
 
         // Set up a Table layout to center the elements
         Table table = new Table();
+        table.setPosition(0, -70);
         table.setFillParent(true);
         table.center();
 

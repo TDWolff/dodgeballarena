@@ -115,8 +115,8 @@ public class PowerManagerScreen implements Screen {
                             newIndex = random.nextInt(POWER_NAMES.length);
                         } while (
                             !CAN_BE_STACKED[newIndex] && // If not stackable
-                            (wheelIndices[0] == newIndex || wheelIndices[1] == newIndex || wheelIndices[2] == newIndex) // Already present
-                            && (i == 0 ? false : true) // Only check previous wheels
+                            (wheelIndices[0] == newIndex || wheelIndices[1] == newIndex || wheelIndices[2] == newIndex)
+                            && (i == 0 ? false : true)
                         );
                         wheelIndices[i] = newIndex;
                         wheelLabels[i].setText(getPowerLabel(wheelIndices[i]));
