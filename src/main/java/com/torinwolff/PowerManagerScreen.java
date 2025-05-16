@@ -29,7 +29,7 @@ public class PowerManagerScreen implements Screen {
 
 
     public static final String[] POWER_NAMES = {
-        "Super Jump", "Speed Boost", "Double Life", "Invisibility", "Super Dodgeball"
+        "Super Jump", "Speed Boost", "Double Life", "Invisibility", "N/A"
     };
 
     // Only these can be doubled up
@@ -198,7 +198,7 @@ public class PowerManagerScreen implements Screen {
         powerUps[3] = true;
     }
     public void SuperDodgeballToggle() {
-        System.out.println("Super Dodgeball toggled!");
+        System.out.println("N/A toggled!");
         powerUps[4] = true;
     }
 
